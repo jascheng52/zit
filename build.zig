@@ -14,4 +14,7 @@ pub fn build(b: *std.Build) void {
     // const run_step = b.step("run", "Run the application");
     // run_step.dependOn(&run_exe.step);
 
+    var cwd = std.fs.cwd();
+    cwd.deleteTree(".zit") catch |e| {std.debug.print("{}\n", .{e}); };
+
 }

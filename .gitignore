@@ -1,3 +1,4 @@
-o_zit
+ozit
 zig-out/*
 .zig-cache/*
+.zit
