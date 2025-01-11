@@ -25,6 +25,7 @@ pub fn main() !void
     try switch (comCase)
     {
         COMMAND_TYPE.init => commands.init(),
+        COMMAND_TYPE.branch => commands.branch(&args),
         else => help(),
     };
     
