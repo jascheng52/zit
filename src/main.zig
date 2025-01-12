@@ -6,7 +6,6 @@ const print = std.debug.print;
 
 pub fn main() !void 
 {
-    print("Hello t\n", .{});
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer print( "From main: {} \n", .{gpa.deinit()});

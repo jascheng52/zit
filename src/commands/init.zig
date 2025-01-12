@@ -12,7 +12,7 @@ pub fn init() !void
 
     cwd.access(".zit", .{}) catch {
         try cwd.makeDir(".zit");
-        try cwd.makeDir(".zit/HEAD");
+        try cwd.makeDir(".zit/head");
         try cwd.makeDir(".zit/obj");
         try cwd.makeDir(".zit/commits");
         try cwd.makeDir(".zit/branches");
