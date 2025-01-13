@@ -1,5 +1,6 @@
 const std = @import("std");
 const print = std.debug.print;
+const commands = @import("commands.zig");
 
 const BranchOptions = enum {
     create,
@@ -7,13 +8,13 @@ const BranchOptions = enum {
     NA,
 };
 
-pub fn branch(args: *std.process.ArgIterator) void {
+pub fn com_branch(args: *std.process.ArgIterator) void {
     var cwd = std.fs.cwd();
-    const zitDir = cwd.openDir(".zit", .{}) catch {
+    const zitDir = cwd.openDir(commands.ZIT_DIR, .{}) catch {
         print("Zit not initialized\n", .{});
         return;
     };
-    const branchesDir = zitDir.openDir("branches", .{ .iterate = true }) catch {
+    const branchesDir = zitDir.openDir(commands.BRANCHES_DIR, .{ .iterate = true }) catch {
         print("Zit branches dir missing", .{});
         return;
     };
@@ -66,7 +67,7 @@ fn invalid() void
     return;
 }
 
-fn createBranch(branchName: []const u8, branchDir: *const std.fs.Dir) void {
+pub fn createBranch(branchName: []const u8, branchDir: *const std.fs.Dir) void {
     _ = branchDir.openDir(branchName, .{}) catch {
 
         _ = branchDir.makeDir(branchName) catch  {

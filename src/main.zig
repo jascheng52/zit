@@ -23,8 +23,9 @@ pub fn main() !void
     const comCase : COMMAND_TYPE= std.meta.stringToEnum(COMMAND_TYPE, comArg) orelse COMMAND_TYPE.NA;
     try switch (comCase)
     {
-        COMMAND_TYPE.init => commands.init(),
-        COMMAND_TYPE.branch => commands.branch(&args),
+        COMMAND_TYPE.init => commands.com_init(),
+        COMMAND_TYPE.branch => commands.com_branch(&args),
+        COMMAND_TYPE.change => commands.com_change(&args),
         else => help(),
     };
     
