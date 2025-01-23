@@ -2,6 +2,7 @@ const std = @import("std");
 const commands = @import("commands/commands.zig");
 const COMMAND_TYPE = commands.COMMAND_TYPE;
 
+const Tree = @import("data/objects.zig").Tree;
 const print = std.debug.print;
 
 pub fn main() !void 
@@ -19,6 +20,10 @@ pub fn main() !void
     const comArg = args.next() orelse { help(); std.process.exit(0);};
     // if(comArg == null) { help();}
 
+    const cwd = std.fs.cwd();
+    const iter = try cwd.openDir(".", .{ .iterate = true });
+    _ = try Tree.init(allocator,iter);
+    std.process.exit(0);
 
     const comCase : COMMAND_TYPE= std.meta.stringToEnum(COMMAND_TYPE, comArg) orelse COMMAND_TYPE.NA;
     try switch (comCase)
