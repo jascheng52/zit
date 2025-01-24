@@ -2,27 +2,52 @@ const std = @import("std");
 const ArrayList = std.ArrayList;
 
 const SEED : u64 = 1703;
-const stdHash = std.hash.XxHash64.hash;
+const hashFunc = std.crypto.hash.Blake3.hash;
 const print = std.debug.print;
 const fs = std.fs;
 
 const Blob = struct {
     data: [] u8,
-    hashData : u64,
+    hashData : [256] u8,
+    allocator : std.mem.Allocator,
 
-    fn hash(self: Blob) u64
+    const Self =@This();
+    fn hash(self: *Self) void
     {
-        return stdHash(SEED, self.data);
+
+        const hashVal = self.allocator.alloc(u8, 256) catch |err| {
+            print("{}\n", .{err});
+            std.process.exit(0);
+        };
+        defer self.allocator.free(hashVal);
+        
+        hashFunc(self.data, hashVal, .{});
+
+        std.mem.copyForwards(u8, &self.hashData, hashVal);
+        // print( "{X} \n",.{self.hashData});
+        // std.process.exit(0);
+        return;
     }
 
-    pub fn fillData(self: *Blob) void
+    pub fn init(allocator: std.mem.Allocator, data : [] u8) Self
     {
-        self.hashData = self.hash();
+        var self =Self{
+            .data = data,
+            .hashData = [_]u8{0} ** 256, 
+            .allocator = allocator,
+        };
+        self.hash();
+        return self;
+
     }
 
+    fn deinit(self: Self) void
+    {   
+        self.allocator.free(self.data);
+    }
     fn printBlob(self: Blob) void
     {
-        print("data: {s} --hash: {d}\n", .{self.data, self.hashData});
+        print("data: {s}\nhash: {x}\n", .{self.data, self.hashData});
     }
 };
 
@@ -31,11 +56,12 @@ pub const Tree = struct {
     trees: *ArrayList(Tree),
     blobs: ArrayList(Blob),
     data : []u8,
-    hashData : u64,
+    hashData : [] u8,
 
     fn hash(self: Tree)u64
     {
-        return stdHash(SEED, self.data);
+
+        return hashFunc(self.data, self.hashData, .{});
     }
 
     pub fn init(allocator: std.mem.Allocator, cwd: fs.Dir) !*Tree
@@ -76,8 +102,7 @@ pub const Tree = struct {
                 const stat = try inodeFile.stat();
                 const buffer = try inodeFile.readToEndAlloc(allocator, stat.size);
                 
-                var newBlob = Blob{.data = buffer, .hashData = 0};
-                newBlob.fillData();
+                const newBlob = Blob.init(allocator, buffer);
 
                 try selfTree.blobs.append(newBlob);
                 // newBlob.printBlob();
