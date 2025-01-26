@@ -1,42 +1,44 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
-const SEED : u64 = 1703;
 const hashFunc = std.crypto.hash.Blake3.hash;
 const print = std.debug.print;
+const exit = std.process.exit;
 const fs = std.fs;
 
 const Blob = struct {
     data: [] u8,
     hashData : [256] u8,
+    fname: [256]u8,
     allocator : std.mem.Allocator,
+    executeFlag: bool,
 
     const Self =@This();
     fn hash(self: *Self) void
     {
 
-        const hashVal = self.allocator.alloc(u8, 256) catch |err| {
-            print("{}\n", .{err});
-            std.process.exit(0);
-        };
+        const hashVal = self.allocator.alloc(u8, 256) catch |err| {print("{}\n",.{err});exit(0);};
         defer self.allocator.free(hashVal);
         
         hashFunc(self.data, hashVal, .{});
 
         std.mem.copyForwards(u8, &self.hashData, hashVal);
-        // print( "{X} \n",.{self.hashData});
-        // std.process.exit(0);
+        
         return;
     }
 
-    pub fn init(allocator: std.mem.Allocator, data : [] u8) Self
+    pub fn init(allocator: std.mem.Allocator, data : [] u8, fname : []u8, permissions: usize) Self
     {
         var self =Self{
             .data = data,
             .hashData = [_]u8{0} ** 256, 
+            .fname = [_]u8{0} ** 256,
             .allocator = allocator,
+            //Bit masking for exexute check
+            .executeFlag = permissions & 0o111 != 0,
         };
         self.hash();
+        std.mem.copyForwards(u8, &self.fname, fname);
         return self;
 
     }
@@ -45,78 +47,150 @@ const Blob = struct {
     {   
         self.allocator.free(self.data);
     }
-    fn printBlob(self: Blob) void
+    fn printBlob(self: Blob, level: u32) void
     {
-        print("data: {s}\nhash: {x}\n", .{self.data, self.hashData});
+        for(0..level) |i|
+        {
+            std.debug.print("\t", .{});
+            _=i;
+        }
+        print("fname: {s}\n", .{self.fname});
+        print("Can execute: {}\n", .{self.executeFlag});
+
+        for(0..level) |i|
+        {
+            std.debug.print("\t", .{});
+            _=i;
+        }
+        
+        print("hash: {x}\n", .{self.hashData[0..5]});
+
     }
 };
 
 
 pub const Tree = struct {
-    trees: *ArrayList(Tree),
+    trees: ArrayList(Tree),
     blobs: ArrayList(Blob),
     data : []u8,
-    hashData : [] u8,
+    hashData : [256] u8,
+    treename : [256] u8,
+    allocator : std.mem.Allocator,
 
-    fn hash(self: Tree)u64
+    const Self = @This();
+
+    pub fn init(allocator: std.mem.Allocator, cwd: fs.Dir, treeName: [] const u8) Self
     {
 
-        return hashFunc(self.data, self.hashData, .{});
-    }
+        var self = Self{
+            .trees = ArrayList(Tree).init(allocator),
+            .blobs = ArrayList(Blob).init(allocator),
+            .data = undefined,
+            .hashData = [_]u8 {0} ** 256,
+            .treename = [_]u8 {0} ** 256,
+            .allocator = allocator,
+            
+        };
+        std.mem.copyForwards(u8, &self.treename, treeName);
 
-    pub fn init(allocator: std.mem.Allocator, cwd: fs.Dir) !*Tree
-    {
-        const selfTree = try allocator.create(Tree);
-        selfTree.blobs = ArrayList(Blob).init(allocator);
-        
-        var dataList = ArrayList([]u8).init(allocator);
-        _=&dataList;
-        defer dataList.deinit();
         
         var cwdIter = cwd.iterate();
-        while(cwdIter.next() catch |err| {
-            print("Tree iterator : {}\n", .{err});
-            std.process.exit(0);
-        }) |inode|
+        while(cwdIter.next() catch |err| {print("{}\n",.{err});exit(0);}) |inode|
         {
-            
-            print("name: {s}\n", .{inode.name});
             if(inode.kind == std.fs.File.Kind.directory)
             {
                 if(std.mem.eql(u8, inode.name, ".zit"))
                     continue;
-                const subTree = try Tree.init(allocator, try cwd.openDir(inode.name, .{.iterate = true}));
-                _= subTree;
+                var subTreeDir  = cwd.openDir(inode.name, .{.iterate = true}) catch |err| {print("{}\n",.{err});exit(0);};
+                defer subTreeDir.close();
+
+                const subTree = Tree.init(allocator, subTreeDir,inode.name);
+                self.trees.append(subTree) catch |err| {print("{}\n",.{err});exit(0);};
+
                 // dataList.append(subTree.data);
             }
             else 
             {
                 if(std.mem.eql(u8, inode.name, "zit"))
                 {
-                    print("Here\n", .{});
-                    // std.process.exit(0);
                     continue;
                 }
-                const inodeFile = try cwd.openFile(inode.name, .{});
+                const inodeFile = cwd.openFile(inode.name, .{}) catch |err| {print("{}\n",.{err});exit(0);};
                 defer inodeFile.close();
-                const stat = try inodeFile.stat();
-                const buffer = try inodeFile.readToEndAlloc(allocator, stat.size);
-                
-                const newBlob = Blob.init(allocator, buffer);
 
-                try selfTree.blobs.append(newBlob);
+                const stat = inodeFile.stat() catch |err| {print("{}\n",.{err});exit(0);};
+                const metadata = inodeFile.metadata() catch |err| {print("{}\n",.{err});exit(0);};
+                
+            
+                const buffer = inodeFile.readToEndAlloc(allocator, stat.size) catch |err| {print("{}\n",.{err});exit(0);};
+                const res: [] u8 =  @constCast(inode.name);
+
+                
+                const newBlob = Blob.init(allocator, buffer, res, metadata.permissions().inner.mode);
+
+                self.blobs.append(newBlob) catch |err| {print("{}\n",.{err});exit(0);};
                 // newBlob.printBlob();
             }
             
         }
-            
-        for(selfTree.blobs.items) |i|
+        
+        
+        self.hash();
+        return self;
+    }
+    pub fn denit(self: Self) void
+    {
+        for(self.trees.items) |tree|
         {
-            i.printBlob();
+            tree.denit();
         }
-        return selfTree;
+        for(self.blobs.items) |blob|
+        {
+            blob.deinit();
+        }
+
+        self.trees.deinit();
+        self.blobs.deinit();
     }
 
+
+    pub fn printTree(self: Self, level : u32) void
+    {
+        for(0..level) |i|
+        {
+            std.debug.print("\t", .{});
+            _=i;
+        }
+        print("Tree Name : {s}\n", .{ self.treename});
+        for(0..level) |i|
+        {
+            std.debug.print("\t", .{});
+            _=i;
+        }
+        print("Tree Hash : {x}\n", .{ self.hashData[0..5]});
+        for(self.trees.items) |tree|
+        {
+            tree.printTree(level + 1);
+        }
+        for(self.blobs.items) |blob|
+        {
+            blob.printBlob(level);
+        }
+    }
+
+    fn hash(self: *Self) void
+    {
+        var subHashesList = ArrayList(u8).init(self.allocator);
+        defer subHashesList.deinit();
+        for(self.trees.items) |tree|
+        {
+            subHashesList.appendSlice(&tree.hashData) catch |err| {print("{}\n",.{err});exit(0);};
+        }
+        for(self.blobs.items) |blob|
+        {
+             subHashesList.appendSlice(&blob.hashData) catch |err| {print("{}\n",.{err});exit(0);};
+        }
+        
+        hashFunc(subHashesList.items, &self.hashData, .{});
+    }
 };
-
-

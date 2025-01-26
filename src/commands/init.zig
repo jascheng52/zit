@@ -17,7 +17,7 @@ pub fn com_init() !void
         try cwd.makeDir(commands.ZIT_OBJ_DIR);
         try cwd.makeDir(commands.ZIT_COMMITS_DIR);
         try cwd.makeDir(commands.ZIT_BRANCHES_DIR);
-
+        
         const branchDir = try cwd.openDir(commands.ZIT_BRANCHES_DIR, .{});
         commands.branch_create(commands.MAIN_BRANCH, &branchDir);
 

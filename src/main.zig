@@ -22,8 +22,10 @@ pub fn main() !void
 
     const cwd = std.fs.cwd();
     const iter = try cwd.openDir(".", .{ .iterate = true });
-    _ = try Tree.init(allocator,iter);
-    std.process.exit(0);
+    const rootTree = Tree.init(allocator,iter, ".");
+    rootTree.printTree(0);
+    rootTree.denit();
+    // std.process.exit(0);
 
     const comCase : COMMAND_TYPE= std.meta.stringToEnum(COMMAND_TYPE, comArg) orelse COMMAND_TYPE.NA;
     try switch (comCase)
@@ -33,6 +35,7 @@ pub fn main() !void
         COMMAND_TYPE.change => commands.com_change(&args),
         else => help(),
     };
+
     
 
 }
