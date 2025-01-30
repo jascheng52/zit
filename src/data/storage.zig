@@ -65,7 +65,7 @@ fn appendAsHex(list : *ArrayList(u8), hash: [] const u8) !void
             byte = byte & 0x0f;
         }
         else{
-            byte = byte & 0xf0 >> 4; 
+            byte = byte >> 4; 
         }
         
         const mappedVal = try mapByte(byte);
