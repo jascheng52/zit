@@ -1,14 +1,14 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
-const hashFunc = std.crypto.hash.Blake3.hash;
+const hashFunc = std.crypto.hash.sha2.Sha256.hash;
 const print = std.debug.print;
 const exit = std.process.exit;
 const fs = std.fs;
 
-const Blob = struct {
+pub const Blob = struct {
     data: [] u8,
-    hashData : [256] u8,
+    hashData: [32] u8,
     fname: [256]u8,
     allocator : std.mem.Allocator,
     executeFlag: bool,
@@ -17,21 +17,14 @@ const Blob = struct {
     fn hash(self: *Self) void
     {
 
-        const hashVal = self.allocator.alloc(u8, 256) catch |err| {print("{}\n",.{err});exit(0);};
-        defer self.allocator.free(hashVal);
-        
-        hashFunc(self.data, hashVal, .{});
-
-        std.mem.copyForwards(u8, &self.hashData, hashVal);
-        
-        return;
+        hashFunc(self.data, &self.hashData, .{});
     }
 
     pub fn init(allocator: std.mem.Allocator, data : [] u8, fname : []u8, permissions: usize) Self
     {
         var self =Self{
             .data = data,
-            .hashData = [_]u8{0} ** 256, 
+            .hashData = [_]u8{0} ** 32, 
             .fname = [_]u8{0} ** 256,
             .allocator = allocator,
             //Bit masking for exexute check
@@ -73,7 +66,7 @@ pub const Tree = struct {
     trees: ArrayList(Tree),
     blobs: ArrayList(Blob),
     data : []u8,
-    hashData : [256] u8,
+    hashData : [32] u8,
     treename : [256] u8,
     allocator : std.mem.Allocator,
 
@@ -86,7 +79,7 @@ pub const Tree = struct {
             .trees = ArrayList(Tree).init(allocator),
             .blobs = ArrayList(Blob).init(allocator),
             .data = undefined,
-            .hashData = [_]u8 {0} ** 256,
+            .hashData = [_]u8 {0} ** 32,
             .treename = [_]u8 {0} ** 256,
             .allocator = allocator,
             
@@ -192,5 +185,6 @@ pub const Tree = struct {
         }
         
         hashFunc(subHashesList.items, &self.hashData, .{});
+        
     }
 };

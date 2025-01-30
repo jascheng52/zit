@@ -3,6 +3,8 @@ const commands = @import("commands/commands.zig");
 const COMMAND_TYPE = commands.COMMAND_TYPE;
 
 const Tree = @import("data/objects.zig").Tree;
+const Storage = @import("data/storage.zig");
+
 const print = std.debug.print;
 
 pub fn main() !void 
@@ -22,9 +24,12 @@ pub fn main() !void
 
     const cwd = std.fs.cwd();
     const iter = try cwd.openDir(".", .{ .iterate = true });
-    const rootTree = Tree.init(allocator,iter, ".");
-    rootTree.printTree(0);
-    rootTree.denit();
+    const buffer = try Storage.writeTreeToBuffer(allocator, iter, ".");
+    defer allocator.free(buffer);
+    print("{s}\n", .{buffer});
+    var file = try std.fs.cwd().createFile("test", .{});
+    defer file.close();
+    try file.writeAll(buffer);
     // std.process.exit(0);
 
     const comCase : COMMAND_TYPE= std.meta.stringToEnum(COMMAND_TYPE, comArg) orelse COMMAND_TYPE.NA;
