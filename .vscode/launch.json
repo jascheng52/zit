@@ -8,9 +8,9 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/ozit",
-            "args": ["init"],
-            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/../zitTest/zit",
+            "args": ["stage", "hello"],
+            "cwd": "${workspaceFolder}/../zitTest",
             
         }
 

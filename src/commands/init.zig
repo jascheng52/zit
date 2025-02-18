@@ -2,13 +2,7 @@ const std = @import("std");
 const print = std.debug.print;
 const commands = @import("commands.zig");
 
-pub fn com_init() !void
-{
-    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    // defer print( "From init: {} \n", .{gpa.deinit()});
-
-    // const allocator = gpa.allocator();
-
+pub fn com_init() !void {
     var cwd = std.fs.cwd();
 
     cwd.access(".zit", .{}) catch {
@@ -17,7 +11,9 @@ pub fn com_init() !void
         try cwd.makeDir(commands.ZIT_OBJ_DIR);
         try cwd.makeDir(commands.ZIT_COMMITS_DIR);
         try cwd.makeDir(commands.ZIT_BRANCHES_DIR);
-        
+        try cwd.makeDir(commands.ZIT_STAGE_DIR);
+        try cwd.makeDir(commands.ZIT_WORK_DIR);
+
         const branchDir = try cwd.openDir(commands.ZIT_BRANCHES_DIR, .{});
         commands.branch_create(commands.MAIN_BRANCH, &branchDir);
 
@@ -25,9 +21,7 @@ pub fn com_init() !void
         commands.change_branch(&zitDir, commands.MAIN_BRANCH);
 
         return;
-
     };
-    
-    _ = try std.io.getStdOut().write("Zit alreadly initialized\n");
 
+    _ = try std.io.getStdOut().write("Zit alreadly initialized\n");
 }

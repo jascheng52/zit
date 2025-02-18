@@ -33,13 +33,14 @@ pub fn main() !void
     // std.process.exit(0);
 
     const comCase : COMMAND_TYPE= std.meta.stringToEnum(COMMAND_TYPE, comArg) orelse COMMAND_TYPE.NA;
-    try switch (comCase)
+    switch (comCase)
     {
-        COMMAND_TYPE.init => commands.com_init(),
+        COMMAND_TYPE.init => commands.com_init() catch |err| { print("{}\n", .{err});},
         COMMAND_TYPE.branch => commands.com_branch(&args),
-        COMMAND_TYPE.change => commands.com_change(&args),
+        COMMAND_TYPE.change => commands.com_change(&args) catch |err| { print("{}\n", .{err});},
+        COMMAND_TYPE.stage => commands.com_stage(&args) catch |err| { print("{}\n", .{err});},
         else => help(),
-    };
+    } 
 
     
 

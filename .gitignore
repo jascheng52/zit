@@ -2,3 +2,4 @@ ozit
 zig-out/*
 .zig-cache/*
 .zit
+.vscode/*
